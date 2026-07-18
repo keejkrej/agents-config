@@ -5,36 +5,9 @@
 # opencode -> ~/.config/opencode
 # Cursor -> ~/.cursor/rules/orchestration.mdc + ~/.cursor/agents/
 # Grok   -> ~/.grok/AGENTS.md + ~/.grok/agents/ + ~/.grok/config.toml
-#
-# Usage:
-#   ./install.sh              # install all four
-#   ./install.sh codex opencode  # install only selected tools
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLS=()
-
-usage() {
-  cat <<EOF
-Usage: ./install.sh [codex] [opencode] [cursor] [grok]
-
-Without arguments, installs all four to their user/global directories.
-EOF
-  exit 1
-}
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    -h|--help) usage;;
-    all) TOOLS=(codex opencode cursor grok); shift;;
-    codex|opencode|cursor|grok) TOOLS+=("$1"); shift;;
-    *) echo "Unknown option: $1" >&2; usage;;
-  esac
-done
-
-if [[ ${#TOOLS[@]} -eq 0 ]]; then
-  TOOLS=(codex opencode cursor grok)
-fi
 
 backup_and_copy() {
   local src="$1" dest="$2"
@@ -137,14 +110,10 @@ install_grok() {
   ensure_grok_subagents "$grok_dir"
 }
 
-for t in "${TOOLS[@]}"; do
-  case "$t" in
-    codex) install_codex;;
-    opencode) install_opencode;;
-    cursor) install_cursor;;
-    grok) install_grok;;
-  esac
-done
+install_codex
+install_opencode
+install_cursor
+install_grok
 
 echo
 echo "==> Done."

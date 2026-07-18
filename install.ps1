@@ -4,35 +4,8 @@
 # opencode -> ~/.config/opencode
 # Cursor -> ~/.cursor/rules/orchestration.mdc + ~/.cursor/agents/
 # Grok   -> ~/.grok/AGENTS.md + ~/.grok/agents/ + ~/.grok/config.toml
-#
-# Usage:
-#   .\install.ps1              # install all four
-#   .\install.ps1 codex opencode  # install only selected tools
-[CmdletBinding()]
-param(
-  [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
-  [string[]]$Tools = @()
-)
-
 $ErrorActionPreference = 'Stop'
 $Here = $PSScriptRoot
-
-function Show-Usage {
-  Write-Host 'Usage: .\install.ps1 [codex] [opencode] [cursor] [grok]'
-  Write-Host 'Without arguments, installs all four to their user/global directories.'
-}
-
-if ($Tools -contains '/?' -or $Tools -contains '-h' -or $Tools -contains '--help') {
-  Show-Usage
-  exit 0
-}
-
-if ($Tools -contains 'all') {
-  $Tools = @('codex', 'opencode', 'cursor', 'grok')
-}
-if ($Tools.Count -eq 0) {
-  $Tools = @('codex', 'opencode', 'cursor', 'grok')
-}
 
 function Backup-And-Copy($Src, $Dest) {
   $destParent = Split-Path -Parent $Dest
@@ -136,15 +109,10 @@ function Install-Grok {
   Ensure-GrokSubagents $grokDir
 }
 
-foreach ($t in $Tools) {
-  switch ($t) {
-    'codex' { Install-Codex }
-    'opencode' { Install-Opencode }
-    'cursor' { Install-Cursor }
-    'grok' { Install-Grok }
-    default { Write-Error "Unknown tool: $t"; Show-Usage; exit 1 }
-  }
-}
+Install-Codex
+Install-Opencode
+Install-Cursor
+Install-Grok
 
 Write-Host ''
 Write-Host '==> Done.'

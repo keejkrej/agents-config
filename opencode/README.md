@@ -22,21 +22,18 @@ Install from the repo root with the single `install.sh` / `install.ps1` script:
 
 ```bash
 ./install.sh          # install all tools
-./install.sh opencode # install only opencode
 ```
 
 ## What this config does
 
 - Registers a custom **Ollama (local)** provider pointing at
   `http://localhost:11434/v1` — the same setup `ollama launch opencode` uses
-  — and defines the **glm-5.2:cloud** model under it. Ollama routes the
+  — and defines the **kimi-k2.7-code:cloud** model under it. Ollama routes the
   `:cloud` suffix to Ollama Cloud, so you don't need the separate
   `ollama-cloud` provider or its API key.
-- Sets the default session model to **ollama/glm-5.2:cloud** via `opencode.json`.
+- Sets the default session model to **ollama/kimi-k2.7-code:cloud** via `opencode.json`.
 - Sets `permission: "allow"` — every tool action is auto-approved (yolo mode).
   No confirmation prompts for edits, bash, or anything else.
-- Registers an optional **vision-mcp** server (Ollama-backed vision model)
-  via the `mcp` block in `opencode.json`.
 - Copies `instructions.md` to `~/.config/opencode/AGENTS.md`, which instructs the
   main agent to **delegate eagerly to subagents** for research, exploration,
   search, verification, code review, and any multi-file investigation.
@@ -52,7 +49,7 @@ Install from the repo root with the single `install.sh` / `install.ps1` script:
 - [Ollama](https://ollama.com) installed locally. Pull the model first so
   opencode can see it:
   ```bash
-  ollama pull glm-5.2:cloud
+  ollama pull kimi-k2.7-code:cloud
   ```
   The `:cloud` suffix routes through Ollama Cloud; the request itself goes via
   the local Ollama endpoint at `http://localhost:11434/v1`.
