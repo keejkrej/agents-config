@@ -21,7 +21,8 @@ scripts/
 Install from the repo root with the single `install.sh` / `install.ps1` script:
 
 ```bash
-./install.sh opencode
+./install.sh          # install all tools
+./install.sh opencode # install only opencode
 ```
 
 ## What this config does

@@ -1,31 +1,25 @@
-# Install agent configs from this repo into the target tool directories.
+# Install agent configs from this repo into user/global tool directories.
 #
-# Codex and opencode always go to user config.
-# Cursor and Grok are project-scoped by default; use -Global to install them
-# to the user-level directories (~/.cursor/rules/ and ~/.grok/AGENTS.md).
+# Codex  -> ~/.codex
+# opencode -> ~/.config/opencode
+# Cursor -> ~/.cursor/rules/orchestration.mdc + ~/.cursor/agents/
+# Grok   -> ~/.grok/AGENTS.md + ~/.grok/agents/ + ~/.grok/config.toml
 #
 # Usage:
-#   .\install.ps1 [codex] [opencode] [cursor] [grok]
-#   .\install.ps1 -Global [codex] [opencode] [cursor] [grok]
-#   .\install.ps1 -Global                    # installs all four
-#   .\install.ps1 -Global cursor grok          # cursor + grok globally
-#   .\install.ps1 -ProjectDir C:\path\to\project cursor grok
+#   .\install.ps1              # install all four
+#   .\install.ps1 codex opencode  # install only selected tools
 [CmdletBinding()]
 param(
-  [switch]$Global,
   [Parameter(Position = 0, ValueFromRemainingArguments = $true)]
-  [string[]]$Tools = @(),
-  [string]$ProjectDir = ''
+  [string[]]$Tools = @()
 )
 
 $ErrorActionPreference = 'Stop'
 $Here = $PSScriptRoot
 
 function Show-Usage {
-  Write-Host 'Usage: .\install.ps1 [-Global] [-ProjectDir <path>] [codex] [opencode] [cursor] [grok]'
-  Write-Host 'Without tools, default is codex + opencode.'
-  Write-Host '-Global installs cursor/grok to user/global dirs.'
-  Write-Host '-ProjectDir is required for cursor/grok without -Global.'
+  Write-Host 'Usage: .\install.ps1 [codex] [opencode] [cursor] [grok]'
+  Write-Host 'Without arguments, installs all four to their user/global directories.'
 }
 
 if ($Tools -contains '/?' -or $Tools -contains '-h' -or $Tools -contains '--help') {
@@ -37,19 +31,7 @@ if ($Tools -contains 'all') {
   $Tools = @('codex', 'opencode', 'cursor', 'grok')
 }
 if ($Tools.Count -eq 0) {
-  if ($Global) {
-    $Tools = @('codex', 'opencode', 'cursor', 'grok')
-  } else {
-    $Tools = @('codex', 'opencode')
-  }
-}
-
-foreach ($t in $Tools) {
-  if (($t -eq 'cursor' -or $t -eq 'grok') -and -not $Global -and [string]::IsNullOrWhiteSpace($ProjectDir)) {
-    Write-Error 'ProjectDir is required for cursor and grok when not using -Global.'
-    Show-Usage
-    exit 1
-  }
+  $Tools = @('codex', 'opencode', 'cursor', 'grok')
 }
 
 function Backup-And-Copy($Src, $Dest) {
@@ -98,7 +80,7 @@ function Install-Opencode {
   }
 }
 
-function Install-CursorGlobal {
+function Install-Cursor {
   $cursorDir = if ($env:CURSOR_DIR) { $env:CURSOR_DIR } else { Join-Path $HOME '.cursor' }
   Write-Host "==> Installing Cursor global config to $cursorDir"
   New-Item -ItemType Directory -Force -Path (Join-Path $cursorDir 'rules'), (Join-Path $cursorDir 'agents') | Out-Null
@@ -128,26 +110,22 @@ alwaysApply: true
   }
 }
 
-function Install-CursorProject {
-  $destDir = $ProjectDir
-  Write-Host "==> Installing Cursor project config to $destDir"
-  New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-  Backup-And-Copy (Join-Path $Here 'cursor\instructions.md') (Join-Path $destDir 'AGENTS.md')
-  $agentsDir = Join-Path $Here 'cursor\agents'
-  if (Test-Path $agentsDir) {
-    $cursorAgents = Join-Path $destDir '.cursor\agents'
-    New-Item -ItemType Directory -Force -Path $cursorAgents | Out-Null
-    Get-ChildItem -Path $agentsDir -Filter '*.md' -ErrorAction SilentlyContinue | ForEach-Object {
-      Backup-And-Copy $_.FullName (Join-Path $cursorAgents $_.Name)
+function Ensure-GrokSubagents($GrokDir) {
+  $config = Join-Path $GrokDir 'config.toml'
+  if (Test-Path $config) {
+    if ((Get-Content $config -Raw) -match '\[subagents\]') {
+      Write-Host "  $config already has a [subagents] section; leaving it unchanged"
+    } else {
+      Add-Content $config "`n[subagents]`nenabled = true`n"
+      Write-Host "  appended [subagents] enabled = true to $config"
     }
+  } else {
+    Copy-Item (Join-Path $Here 'grok\config.toml') $config -Force
+    Write-Host "  copied config.toml (subagents enabled)"
   }
 }
 
-function Install-Cursor {
-  if ($Global) { Install-CursorGlobal } else { Install-CursorProject }
-}
-
-function Install-GrokGlobal {
+function Install-Grok {
   $grokDir = if ($env:GROK_DIR) { $env:GROK_DIR } else { Join-Path $HOME '.grok' }
   Write-Host "==> Installing Grok global config to $grokDir"
   New-Item -ItemType Directory -Force -Path $grokDir, (Join-Path $grokDir 'agents') | Out-Null
@@ -155,34 +133,7 @@ function Install-GrokGlobal {
   Get-ChildItem -Path (Join-Path $Here 'grok\agents') -Filter '*.md' -ErrorAction SilentlyContinue | ForEach-Object {
     Backup-And-Copy $_.FullName (Join-Path $grokDir "agents\$($_.Name)")
   }
-
-  $configDest = Join-Path $grokDir 'config.toml'
-  if (Test-Path $configDest) {
-    Write-Host "  $configDest already exists; not overwriting."
-    Write-Host "  Make sure it contains: [subagents] enabled = true"
-  } else {
-    Copy-Item (Join-Path $Here 'grok\config.toml') $configDest -Force
-    Write-Host "  copied config.toml (subagents enabled)"
-  }
-}
-
-function Install-GrokProject {
-  $destDir = $ProjectDir
-  Write-Host "==> Installing Grok project config to $destDir"
-  New-Item -ItemType Directory -Force -Path $destDir | Out-Null
-  Backup-And-Copy (Join-Path $Here 'grok\instructions.md') (Join-Path $destDir 'AGENTS.md')
-  $agentsDir = Join-Path $Here 'grok\agents'
-  if (Test-Path $agentsDir) {
-    $grokAgents = Join-Path $destDir '.grok\agents'
-    New-Item -ItemType Directory -Force -Path $grokAgents | Out-Null
-    Get-ChildItem -Path $agentsDir -Filter '*.md' -ErrorAction SilentlyContinue | ForEach-Object {
-      Backup-And-Copy $_.FullName (Join-Path $grokAgents $_.Name)
-    }
-  }
-}
-
-function Install-Grok {
-  if ($Global) { Install-GrokGlobal } else { Install-GrokProject }
+  Ensure-GrokSubagents $grokDir
 }
 
 foreach ($t in $Tools) {
