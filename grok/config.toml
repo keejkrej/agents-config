@@ -1,0 +1,6 @@
+# Minimal Grok Build user config enabling subagents.
+# The install script copies this to ~/.grok/config.toml only if that file does
+# not already exist. Add your own model/API settings in that file afterwards.
+
+[subagents]
+enabled = true
