@@ -1,0 +1,32 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "ollama/glm-5.2:cloud",
+  "small_model": "ollama/glm-5.2:cloud",
+  "instructions": ["AGENTS.md"],
+  "permission": "allow",
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": {
+        "baseURL": "http://localhost:11434/v1"
+      },
+      "models": {
+        "glm-5.2:cloud": {
+          "name": "GLM-5.2 (cloud via local Ollama)"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "vision-mcp": {
+      "type": "local",
+      "command": ["vision-mcp"],
+      "enabled": true,
+      "environment": {
+        "OLLAMA_HOST": "http://localhost:11434",
+        "OLLAMA_VISION_MODEL": "gemma4:31b-cloud"
+      }
+    }
+  }
+}
